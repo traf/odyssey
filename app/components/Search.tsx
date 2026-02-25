@@ -23,7 +23,7 @@ export default function Search({ onSearch, loading, compact, initialValue }: Sea
   return (
     <form
       onSubmit={handleSubmit}
-      className={`flex items-center gap-3 ${compact ? "w-full max-w-xs" : "w-full max-w-md"}`}
+      className={`flex items-center gap-2 ${compact ? "w-full max-w-xs" : "w-full max-w-md"}`}
     >
       <div className="flex items-center flex-1 bg-white/10 border border-white/10 rounded-full overflow-hidden focus-within:border-white/40">
         <span className="pl-5 pr-0.5 text-neutral-500 text-sm select-none whitespace-nowrap">

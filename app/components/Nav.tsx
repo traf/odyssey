@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { UserProfile, CosmosCluster } from "@/lib/types";
 import Search from "@/components/Search";
 import Clusters from "@/components/Clusters";
 import Button from "@/components/Button";
+import API from "@/components/Api";
 
 interface NavProps {
   user: UserProfile | null;
@@ -25,25 +25,9 @@ export default function Nav({
   selectedCluster,
   onSelectCluster,
 }: NavProps) {
-  const [copied, setCopied] = useState(false);
-
-  function handleCopy() {
-    if (!user) return;
-    const cluster = selectedCluster !== null
-      ? clusters.find((c) => c.id === selectedCluster)
-      : null;
-    const path = cluster
-      ? `/api/${user.username}/${cluster.slug}`
-      : `/api/${user.username}`;
-    navigator.clipboard.writeText(`${window.location.origin}${path}`).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
   return (
-    <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5">
-      <div className="w-full px-4 py-3 flex items-center gap-3">
+    <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-lg -mb-1">
+      <div className="w-full px-4 py-3 flex items-center gap-2">
         {user && (
           <div className="flex items-center gap-2 shrink-0">
             {user.avatarUrl && (
@@ -61,20 +45,20 @@ export default function Nav({
         <div className="flex-1 min-w-0">
           <Search onSearch={onSearch} loading={loading} compact initialValue={initialValue} />
         </div>
-      </div>
-      {user && clusters.length > 0 && (
-        <div className="px-4 pb-3 flex items-center gap-3 overflow-x-auto no-scrollbar">
-          <Clusters
-            clusters={clusters}
-            selected={selectedCluster}
-            onSelect={onSelectCluster}
-          />
-          <div className="w-px h-5 bg-white/20 shrink-0" />
-          <Button size="sm" active={copied} onClick={handleCopy}>
-            {copied ? "Copied" : "API"}
-          </Button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {user && clusters.length > 0 && (
+            <Clusters
+              clusters={clusters}
+              selected={selectedCluster}
+              onSelect={onSelectCluster}
+            />
+          )}
+          <API />
+          <a href="https://github.com/traf/ace" target="_blank" rel="noopener noreferrer">
+            <Button size="sm">GitHub</Button>
+          </a>
         </div>
-      )}
+      </div>
     </header>
   );
 }

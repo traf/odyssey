@@ -63,7 +63,7 @@ export default function Grid({ elements, onLoadMore, hasMore, loadingMore }: Gri
 
   return (
     <>
-      <div className="flex gap-1.5">
+      <div className="flex gap-2">
         {columns.map((col, i) => (
           <div key={i} className="flex-1 min-w-0">
             {col.map((el) => (

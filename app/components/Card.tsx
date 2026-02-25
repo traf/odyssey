@@ -15,7 +15,7 @@ export default function Card({ element }: { element: CosmosElement }) {
   return (
     <a href={`https://www.cosmos.so/e/${element.id}`} target="_blank" rel="noopener noreferrer" className="block mb-1.5">
       <div
-        className="relative overflow-hidden rounded-md bg-neutral-900"
+        className="relative overflow-hidden rounded-2xl bg-neutral-900"
         style={{ aspectRatio }}
       >
         {!loaded && <div className="absolute inset-0 bg-neutral-900 animate-pulse" />}

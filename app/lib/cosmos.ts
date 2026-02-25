@@ -51,7 +51,7 @@ const ELEMENTS_QUERY = `
   query ($ownerId: UserId!, $cursor: String) {
     userPublicElementsV1(
       userId: $ownerId
-      filters: { contentType: IMAGE }
+      filters: {}
       meta: { pageSize: 40, pageCursor: $cursor }
     ) {
       items {
