@@ -41,7 +41,7 @@ export default function Landing({ onSearch, loading, error }: LandingProps) {
           <p className="mt-2 h-12 text-base text-neutral-400 leading-relaxed text-balance">
             A native mac app to browse your Cosmos from your desktop.
           </p>
-          <a href="https://github.com/traf/odyssey/releases/latest" target="_blank" rel="noopener noreferrer" className="mt-8">
+          <a href="https://github.com/traf/odyssey/releases/latest/download/Odyssey.dmg" className="mt-8">
             <Button size="lg" active className="flex items-center gap-2">
               <Apple className="h-5 w-5" />
               Download for Mac
