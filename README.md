@@ -1,6 +1,6 @@
 <div align="center">
   <img src="apps/web/public/logo.svg" alt="Odyssey" width="52" />
-  <h2>Odyssey</h2>
+  <h1>Odyssey</h1>
 </div>
 
 <br />
