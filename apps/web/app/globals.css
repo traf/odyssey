@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* Design tokens — mirror apps/mac Theme.swift (single source of truth). */
+@theme inline {
+  --font-sans: var(--font-geist);
+  --color-background: #141414;
+  --color-foreground: #ffffff;
+}
+
+/* Hide scrollbar but keep scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Strip native search input decorations (clear button, etc.) */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
