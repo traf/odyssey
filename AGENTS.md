@@ -34,6 +34,13 @@ The mac app mirrors these types in `apps/mac/Sources/Odyssey/Models.swift` and h
   - **Modals are the `Modal` component** — dimmed + 2px-blurred backdrop, click-outside or Esc to close, rounded to `Theme.corner`. Content-only views (e.g. `Account`) go inside it; the close control is the reusable `IconButton`.
   - **Keyboard shortcuts** — ⌘, settings, ⌘S sidebar, ⌘Z Zen mode (hides all chrome, images only), ⌘+/⌘−/⌘0 zoom. Register in `OdysseyApp` commands, drive state via `GalleryModel`, and list them in the `Account` modal.
   - **Never use a system `ProgressView`/spinner.** Every loading indicator is the spinning Cosmos mark — use the `Spinner` component (or the in-field spinning `CosmosMark`). The logo *is* the loader.
-  - **Shipping**: `apps/mac/scripts/release.sh [version]` builds, Developer-ID signs, notarizes, and packages `dist/Odyssey.dmg`. Upload it to a GitHub release; the web "Download for Mac" button links to `releases/latest`. Creds in `apps/mac/.env.release` (gitignored).
+  - **Shipping / releases**: to ship a Mac update, follow this exact flow so the in-app update check works:
+    1. Pick the next **semver** version (`MAJOR.MINOR.PATCH`, e.g. `1.0.1` for fixes, `1.1.0` for features).
+    2. Bump `Updater.fallbackVersion` in `Updater.swift` to the same `<version>` (dev builds have no Info.plist and use this as their version).
+    3. `apps/mac/scripts/release.sh <version>` — builds, Developer-ID signs, notarizes, staples, and packages `dist/Odyssey.dmg` (that `<version>` is written into the app's `CFBundleShortVersionString`). Creds in `apps/mac/.env.release` (gitignored).
+    4. Create a GitHub release tagged **`v<version>`** (the `v` prefix matters — `Updater.swift` strips it) and upload `Odyssey.dmg` as an asset named exactly `Odyssey.dmg`. Publish it as the latest release. The DMG installer window is styled by `scripts/background.swift` + `scripts/dmg.py` (light bg, SF-Symbol drag arrow — macOS forces DMG labels black, so the background must be light).
+    5. Keep the release notes body leading with the direct download link (`releases/latest/download/Odyssey.dmg`).
+    - The app has **no auto-updater**. On launch `Updater.swift` fetches the latest release tag from the GitHub API and, if it's newer than the running `CFBundleShortVersionString`, shows an "Update available" button in the `Account` modal that opens the releases page for a manual re-download. The web "Download for Mac" button links to `releases/latest`.
+    - To re-cut the *same* version (e.g. a fix before anyone downloaded): rebuild with the same `<version>`, delete the old release asset, and re-upload — keep the tag `v<version>`.
   - Public data only (no auth) — all data comes through the Odyssey web API.
 - Don't start dev servers — one is usually running.

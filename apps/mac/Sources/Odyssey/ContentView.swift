@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var zoomed: CosmosElement?
     @State private var transitioningID: Int?
     @State private var didActivate = false
+    @State private var updater = Updater()
     @Namespace private var hero
 
     private var modalPresented: Bool { zoomed != nil || model.showAccount }
@@ -27,7 +28,7 @@ struct ContentView: View {
 
             if model.showAccount {
                 Modal(onDismiss: closeAccount) {
-                    Account(model: model, onDone: closeAccount)
+                    Account(model: model, updater: updater, onDone: closeAccount)
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
@@ -40,6 +41,7 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .readsFullscreen()
         .task { await model.restore() }
+        .task { await updater.check() }
         // Silent refresh whenever the app regains focus, so external Cosmos edits
         // (e.g. a deleted element) show up invisibly. Skip the first activation —
         // launch restore already covers it.
@@ -55,7 +57,7 @@ struct ContentView: View {
             Loading()
         } else if model.hasProfile {
             NavigationSplitView(columnVisibility: sidebarVisibility) {
-                Sidebar(model: model, onAccount: openAccount)
+                Sidebar(model: model, updater: updater, onAccount: openAccount)
                     .blur(radius: modalPresented ? 2 : 0)
                     // While a modal/lightbox is up, drop any inherited animation so
                     // the zoom spring can't drive layout in the sidebar (no shift).

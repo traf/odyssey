@@ -3,14 +3,18 @@ import SwiftUI
 // Account settings: shows the current profile, switch username, or sign out.
 struct Account: View {
     @Bindable var model: GalleryModel
+    var updater: Updater
     var onDone: () -> Void
 
     private static let site = URL(string: "https://odyssey-hq.vercel.app/")!
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            HStack {
+            HStack(spacing: 6) {
                 Logo(size: 22)
+                Text("v\(updater.current)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
                 Spacer()
                 IconButton(systemImage: "xmark", action: onDone)
             }

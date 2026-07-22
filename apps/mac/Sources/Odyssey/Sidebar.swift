@@ -3,6 +3,7 @@ import SwiftUI
 // Cluster navigation with an account button pinned to the bottom.
 struct Sidebar: View {
     @Bindable var model: GalleryModel
+    var updater: Updater
     var onAccount: () -> Void
 
     @Environment(\.isFullscreen) private var fullscreen
@@ -40,6 +41,23 @@ struct Sidebar: View {
                 }
             }
             .scrollContentBackground(.hidden)
+
+            if updater.updateAvailable {
+                SwiftUI.Button { NSWorkspace.shared.open(Updater.releasesPage) } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "arrow.down.circle")
+                        Text("Update available")
+                            .lineLimit(1)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Capsule())
+                    .glassEffect(.regular, in: .capsule)
+                }
+                .buttonStyle(.plain)
+            }
 
             if let user = model.user {
                 SwiftUI.Button(action: onAccount) {
