@@ -1,4 +1,14 @@
-# Odyssey Mac
+<p align="center">
+  <img src="../../docs/header.png" alt="Odyssey" width="100%" />
+</p>
+
+<h1 align="center">Odyssey Mac</h1>
+
+<p align="center">
+  <img src="../../docs/hero.png" alt="Odyssey Mac app" width="100%" />
+</p>
+
+<br />
 
 A native SwiftUI macOS app to browse [Cosmos](https://cosmos.so) galleries, powered by the Odyssey [API](../web).
 

@@ -142,14 +142,19 @@ struct Lightbox: View {
             .padding(40)
             .onTapGesture(perform: onDismiss)
 
-            if let cosmos = element.cosmosUrl {
-                Button(title: "View in Cosmos", action: { NSWorkspace.shared.open(cosmos) }) {
-                    CosmosMark().frame(width: 15, height: 16)
+            HStack(spacing: 8) {
+                if let cosmos = element.cosmosUrl {
+                    Button(title: "View in Cosmos", action: { NSWorkspace.shared.open(cosmos) }) {
+                        CosmosMark().frame(width: 15, height: 16)
+                    }
                 }
-                .padding(20)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .zIndex(1)
+                if let source = element.source {
+                    Button(title: "View source", systemImage: "link", action: { NSWorkspace.shared.open(source) })
+                }
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            .zIndex(1)
         }
         .ignoresSafeArea()
         .focusable()

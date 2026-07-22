@@ -1,4 +1,14 @@
-# Odyssey
+<p align="center">
+  <img src="docs/header.png" alt="Odyssey" width="100%" />
+</p>
+
+<h1 align="center">Odyssey</h1>
+
+<p align="center">
+  <img src="docs/hero.png" alt="Odyssey Mac app" width="100%" />
+</p>
+
+<br />
 
 An unofficial [Cosmos](https://cosmos.so) client. Two things:
 
@@ -50,3 +60,7 @@ cd apps/mac && swift run   # run the mac app
 ```
 
 See each app's README for details.
+
+---
+
+An unofficial client for Cosmos. Not affiliated with or endorsed by Cosmos. All content and trademarks belong to their respective owners.

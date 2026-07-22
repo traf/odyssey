@@ -8,8 +8,21 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://odyssey-hq.vercel.app"),
   title: "Odyssey",
-  description: "Unofficial Cosmos API.",
+  description: "Unofficial Cosmos API & native mac app",
+  openGraph: {
+    title: "Odyssey",
+    description: "Unofficial Cosmos API & native mac app",
+    url: "https://odyssey-hq.vercel.app",
+    siteName: "Odyssey",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Odyssey",
+    description: "Unofficial Cosmos API & native mac app",
+  },
 };
 
 export default function RootLayout({
