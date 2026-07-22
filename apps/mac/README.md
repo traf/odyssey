@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="../web/public/logo.svg" alt="Odyssey" width="56" />
+  <img src="../web/public/logo.svg" alt="Odyssey" width="52" />
 </p>
 
-<h1 align="center">Odyssey Mac</h1>
+<h3 align="center">Odyssey Mac</h3>
+
+<br />
 
 <p align="center">
   <img src="../web/public/odyssey.png" alt="Odyssey Mac app" width="100%" />
