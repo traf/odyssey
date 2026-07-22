@@ -1,8 +1,7 @@
-<p align="center">
+<div align="center">
   <img src="apps/web/public/logo.svg" alt="Odyssey" width="52" />
-</p>
-
-<h3 align="center">Odyssey</h3>
+  <h2>Odyssey</h2>
+</div>
 
 <br />
 
