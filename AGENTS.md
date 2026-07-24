@@ -17,8 +17,9 @@ Root scripts (`dev`, `build`, `lint`, `start`) proxy to `apps/web`. One hoisted 
 Lives in `apps/web`, not a separate app — it's serverless routes that deploy for free with the frontend. Only split out if it needs independent scaling/deploys or gains heavy auth/caching logic.
 
 - Core logic: `apps/web/app/lib/cosmos.ts` (wraps the Cosmos GraphQL API), types in `lib/types.ts`.
-- Public routes: `app/api/[username]/[[...cluster]]` (README-documented, in-memory cached 5m).
-- Internal routes used by the frontend + mac app: `app/api/cosmos/{resolve,elements,clusters,cluster-elements}` (CDN headers via `lib/cache.ts`: `s-maxage=15s` + `stale-while-revalidate=1d`).
+- Public routes: `app/api/[username]/[[...cluster]]` and `app/api/search?q=` (README-documented + listed in the `Endpoints` modal, in-memory cached 5m via `cached()` in `lib/cache.ts`). They all return the same flat `{ images, count }` shape — keep it that way; the cursor/element detail belongs to the internal routes. `search` returns only the first page, since draining all 500 upstream matches would risk the function timeout.
+- Internal routes used by the frontend + mac app: `app/api/cosmos/{resolve,elements,clusters,cluster-elements,search}` (CDN headers via `lib/cache.ts`: `s-maxage=15s` + `stale-while-revalidate=1d`).
+- `search?q=` is global element search across all of Cosmos (Cosmos' `searchElements`, 40/page, cursor-paginated). It's semantic — the upstream expands the query with related concepts and orders by relevance, so results must never be re-sorted by date, and a nonsense query still returns matches rather than nothing. Cosmos exposes no way to scope search to one user (its `userId` filter needs auth and returns empty), so search is always global.
 
 The mac app mirrors these types in `apps/mac/Sources/Odyssey/Models.swift` and hits the routes via `API.swift`. If you change an API response shape, update both sides.
 
@@ -32,9 +33,11 @@ The mac app mirrors these types in `apps/mac/Sources/Odyssey/Models.swift` and h
   - Motion uses one shared bouncy-but-fast spring, `Theme.spring` — reuse it for every interaction animation (never inline timings). Continuous spinners are the exception.
   - **Trackpad haptics on every discrete action** — zoom, cluster change, image open/close, modal open/close. Always fire through the `Haptic` helper, never call `NSHapticFeedbackManager` directly.
   - **Modals are the `Modal` component** — dimmed + 2px-blurred backdrop, click-outside or Esc to close, rounded to `Theme.corner`. Content-only views (e.g. `Account`) go inside it; the close control is the reusable `IconButton`.
-  - **Keyboard shortcuts** — ⌘, settings, ⌘S sidebar, ⌘Z Zen mode (hides all chrome, images only), ⌘+/⌘−/⌘0 zoom. Register in `OdysseyApp` commands, drive state via `GalleryModel`, and list them in the `Account` modal.
+  - **Keyboard shortcuts** — ⌘, settings, ⌘F or `/` search, ⌘S sidebar, ⌘Z Zen mode (hides all chrome, images only), ⌘+/⌘−/⌘0 zoom. Register in `OdysseyApp` commands, drive state via `GalleryModel`, and list them in the `Account` modal (a `Shortcut` row takes an `or:` combo for alternates).
+  - Bare-key shortcuts (no ⌘) can't be menu commands — AppKit matches menu key equivalents before the responder chain, so they'd swallow the character while typing. Use the `.keyShortcut(_:enabled:action:)` modifier in `Keyboard.swift`, which ignores keys while a field is being edited.
   - **Never use a system `ProgressView`/spinner.** Every loading indicator is the spinning Cosmos mark — use the `Spinner` component (or the in-field spinning `CosmosMark`). The logo *is* the loader.
   - **Shipping / releases**: to ship a Mac update, follow this exact flow so the in-app update check works:
+    0. Move the `## Unreleased` notes in `apps/mac/CHANGELOG.md` under a new `## <version>` heading, and use them as the GitHub release notes. Keep adding entries under `## Unreleased` as you make changes between releases.
     1. Pick the next **semver** version (`MAJOR.MINOR.PATCH`, e.g. `1.0.1` for fixes, `1.1.0` for features).
     2. Bump `Updater.fallbackVersion` in `Updater.swift` to the same `<version>` (dev builds have no Info.plist and use this as their version).
     3. `apps/mac/scripts/release.sh <version>` — builds, Developer-ID signs, notarizes, staples, and packages `dist/Odyssey.dmg` (that `<version>` is written into the app's `CFBundleShortVersionString`). Creds in `apps/mac/.env.release` (gitignored).

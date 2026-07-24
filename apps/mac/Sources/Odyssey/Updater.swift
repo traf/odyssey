@@ -14,7 +14,7 @@ final class Updater {
     // Running app version, e.g. "1.0.0". Dev builds (swift run) have no
     // Info.plist, so fall back to the current shipped version. Keep this in
     // sync with the latest GitHub release tag (see AGENTS.md → Shipping).
-    static let fallbackVersion = "1.0.0"
+    static let fallbackVersion = "1.1.0"
     let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? Updater.fallbackVersion
 
     private(set) var latest: String?

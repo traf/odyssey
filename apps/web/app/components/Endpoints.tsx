@@ -7,6 +7,7 @@ const BASE_URL = "https://odyssey-hq.vercel.app";
 const endpoints = [
   { key: "all", label: "All images", display: `GET ${BASE_URL}/api/{username}`, copy: `${BASE_URL}/api/{username}` },
   { key: "cluster", label: "Cluster images", display: `GET ${BASE_URL}/api/{username}/{cluster}`, copy: `${BASE_URL}/api/{username}/{cluster}` },
+  { key: "search", label: "Search all of Cosmos", display: `GET ${BASE_URL}/api/search?q={query}`, copy: `${BASE_URL}/api/search?q={query}` },
   { key: "example", label: "Example", display: `curl ${BASE_URL}/api/traf/systems`, copy: `curl ${BASE_URL}/api/traf/systems` },
 ];
 
@@ -41,7 +42,7 @@ export default function Endpoints() {
 }`}
       </pre>
 
-      <p className="text-xs text-neutral-500">Responses are cached for up to 5 minutes.</p>
+      <p className="text-xs text-neutral-500">Search returns the top 40 matches. Responses are cached for up to 5 minutes.</p>
     </div>
   );
 }

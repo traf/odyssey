@@ -21,6 +21,11 @@ struct OdysseyApp: App {
                 .keyboardShortcut(",", modifiers: .command)
             }
             CommandGroup(after: .toolbar) {
+                SwiftUI.Button("Search") {
+                    guard model.hasProfile else { return }
+                    withAnimation(Theme.spring) { model.focusSearch() }
+                }
+                .keyboardShortcut("f", modifiers: .command)
                 SwiftUI.Button("Toggle Sidebar") { model.toggleSidebar() }
                     .keyboardShortcut("s", modifiers: .command)
                 SwiftUI.Button("Zen Mode") { withAnimation(Theme.spring) { model.toggleZen() } }

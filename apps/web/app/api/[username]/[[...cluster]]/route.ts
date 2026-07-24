@@ -5,18 +5,7 @@ import {
   fetchClusterElements,
   fetchElements,
 } from "@/lib/cosmos";
-
-const CACHE_TTL = 5 * 60 * 1000;
-const cache = new Map<string, { data: unknown; ts: number }>();
-
-function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.ts < CACHE_TTL) return Promise.resolve(hit.data as T);
-  return fn().then((data) => {
-    cache.set(key, { data, ts: Date.now() });
-    return data;
-  });
-}
+import { cached } from "@/lib/cache";
 
 export async function GET(
   _req: NextRequest,

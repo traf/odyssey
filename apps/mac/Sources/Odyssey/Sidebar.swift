@@ -42,6 +42,20 @@ struct Sidebar: View {
             }
             .scrollContentBackground(.hidden)
 
+            SearchField(
+                text: $model.query,
+                placeholder: "Search Cosmos",
+                hPadding: 10,
+                vPadding: 6,
+                iconSize: 13,
+                iconGlass: 24,
+                shortcut: "/",
+                loading: model.isSearching,
+                focusToken: model.searchFocusToken,
+                onClear: { Task { await model.clearSearch() } },
+                onSubmit: { Task { await model.runSearch() } }
+            )
+
             if updater.updateAvailable {
                 SwiftUI.Button { NSWorkspace.shared.open(Updater.releasesPage) } label: {
                     HStack(spacing: 10) {

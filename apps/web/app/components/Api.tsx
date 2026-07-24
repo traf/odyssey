@@ -33,7 +33,7 @@ export default function Api({
       <Modal open={open} onClose={() => setOpen(false)}>
         <h2 className="text-sm font-semibold mb-1">Odyssey</h2>
         <p className="text-xs text-neutral-400 mb-5">
-          A simple, unofficial <a href="https://cosmos.so" target="_blank" rel="noopener noreferrer" className="underline">Cosmos</a> API for fetching images from profiles & clusters.
+          A simple, unofficial <a href="https://cosmos.so" target="_blank" rel="noopener noreferrer" className="underline">Cosmos</a> API for fetching images from profiles, clusters & search.
         </p>
 
         <Endpoints />

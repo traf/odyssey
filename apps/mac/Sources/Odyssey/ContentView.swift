@@ -14,7 +14,9 @@ struct ContentView: View {
     private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
         Binding(
             get: { model.sidebarVisible && !model.zenMode ? .all : .detailOnly },
-            set: { model.sidebarVisible = $0 != .detailOnly }
+            // Zen mode collapses the split view, and that write-back would
+            // overwrite the preference we need to restore when it turns off.
+            set: { if !model.zenMode { model.sidebarVisible = $0 != .detailOnly } }
         )
     }
 
@@ -40,6 +42,9 @@ struct ContentView: View {
         .fontDesign(Theme.fontDesign)
         .preferredColorScheme(.dark)
         .readsFullscreen()
+        .keyShortcut("/", enabled: model.hasProfile && !modalPresented) {
+            withAnimation(Theme.spring) { model.focusSearch() }
+        }
         .task { await model.restore() }
         .task { await updater.check() }
         // Silent refresh whenever the app regains focus, so external Cosmos edits

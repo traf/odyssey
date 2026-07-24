@@ -76,4 +76,10 @@ struct API {
         if let cursor { query["cursor"] = cursor }
         return try await get("api/cosmos/cluster-elements", query: query)
     }
+
+    static func search(term: String, cursor: String?) async throws -> ElementsResponse {
+        var query = ["q": term]
+        if let cursor { query["cursor"] = cursor }
+        return try await get("api/cosmos/search", query: query)
+    }
 }

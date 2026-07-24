@@ -18,6 +18,7 @@ struct Splash: View {
                 textOffset: -2,
                 loading: model.isLoading,
                 autofocus: true,
+                beam: true,
                 onSubmit: onSubmit
             )
             .frame(maxWidth: 340)

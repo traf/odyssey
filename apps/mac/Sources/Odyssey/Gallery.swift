@@ -48,6 +48,8 @@ struct Gallery: View {
             ContentUnavailableView(error, systemImage: "exclamationmark.triangle")
         } else if model.isLoading && model.elements.isEmpty {
             Spinner()
+        } else if case .search(let term) = model.selection, model.elements.isEmpty {
+            ContentUnavailableView.search(text: term)
         } else if model.elements.isEmpty {
             ContentUnavailableView("Search a username to view their cosmos.", systemImage: "sparkles")
         } else {
@@ -74,7 +76,13 @@ struct Gallery: View {
             .onChanged { value in
                 let anchor = pinchAnchor ?? model.columnCount
                 pinchAnchor = anchor
-                let steps = Int((1 / value.magnification - 1) * 4)
+                // Guard against magnification hitting 0/near-0 on a fast pinch,
+                // which makes 1/magnification blow up to Inf/NaN and traps when
+                // converted to Int.
+                let magnification = max(value.magnification, 0.1)
+                let raw = (1 / magnification - 1) * 4
+                guard raw.isFinite else { return }
+                let steps = Int(raw)
                 let target = (anchor + steps).clamped(to: GalleryModel.minColumns...GalleryModel.maxColumns)
                 if target != model.columnCount {
                     withAnimation(Theme.spring) { model.setColumns(target) }

@@ -5,6 +5,7 @@ import Observation
 @Observable
 final class GalleryModel {
     var username = ""
+    var query = ""
     var user: UserProfile?
     var totalCount = 0
     var clusters: [CosmosCluster] = []
@@ -55,8 +56,10 @@ final class GalleryModel {
     // data is a true no-op and unchanged data never re-renders (no flashes).
     // Called on launch and whenever the app regains focus so external edits in
     // Cosmos (e.g. a deleted element) appear without any visible reload.
+    // Search results are relevance-ranked rather than chronological, so silently
+    // re-fetching them would reshuffle the grid under the user. Leave them alone.
     func refreshCurrent() async {
-        guard hasProfile else { return }
+        guard hasProfile, !selection.isSearch else { return }
         let token = loadToken
         let current = selection
 
@@ -85,6 +88,7 @@ final class GalleryModel {
     func signOut() {
         UserDefaults.standard.removeObject(forKey: Self.savedUsernameKey)
         username = ""
+        query = ""
         user = nil
         totalCount = 0
         clusters = []
@@ -122,13 +126,53 @@ final class GalleryModel {
     private var nextCursor: String?
     // Monotonic token: only the most recent selection load may mutate state.
     private var loadToken = 0
+    // Bumped to ask the search field to take focus.
+    private(set) var searchFocusToken = 0
 
     enum Selection: Hashable {
         case all
         case cluster(Int)
+        case search(String)
+
+        // Search spans all of Cosmos; every other selection reads from the
+        // loaded profile and so needs a resolved user id.
+        var isSearch: Bool {
+            if case .search = self { return true }
+            return false
+        }
     }
 
     var hasProfile: Bool { user != nil }
+
+    // Only spin the search field's mark while a search fetches its first page —
+    // not on profile/cluster fetches, and not on the paging that fires
+    // constantly as you scroll results.
+    var isSearching: Bool { isLoading && selection.isSearch && elements.isEmpty }
+
+    func runSearch() async {
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !term.isEmpty else { return }
+        await select(.search(term))
+    }
+
+    // Empty the field, and drop back to the profile if results are showing —
+    // leaving them up with nothing in the field gives no clue what they are.
+    func clearSearch() async {
+        query = ""
+        if selection.isSearch {
+            await select(.all)   // fires its own haptic
+        } else {
+            Haptic.tap()
+        }
+    }
+
+    // Reveal the sidebar search field and put the caret in it (⌘F, /).
+    func focusSearch() {
+        zenMode = false
+        sidebarVisible = true
+        searchFocusToken &+= 1
+        Haptic.tap()
+    }
 
     func search() async {
         let name = username.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -142,6 +186,7 @@ final class GalleryModel {
         userId = nil
         nextCursor = nil
         selection = .all
+        query = ""
 
         do {
             let result = try await API.resolve(username: name)
@@ -174,8 +219,10 @@ final class GalleryModel {
         isLoading = true
         // Clear the old view immediately so we never show another cluster's images.
         if changed { elements = [] }
+        // Leaving search returns to the profile, so drop the stale term.
+        if !newSelection.isSearch { query = "" }
 
-        guard userId != nil else {
+        guard newSelection.isSearch || userId != nil else {
             elements = []
             isLoading = false
             return
@@ -225,6 +272,8 @@ final class GalleryModel {
             return ElementsResponse(elements: result.elements, nextCursor: result.nextCursor)
         case .cluster(let id):
             return try await API.clusterElements(clusterId: id, cursor: cursor)
+        case .search(let term):
+            return try await API.search(term: term, cursor: cursor)
         }
     }
 

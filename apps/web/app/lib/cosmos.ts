@@ -265,3 +265,68 @@ export async function fetchClusterElements(
     totalCount: result.meta.count,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Global search (paginated)
+// ---------------------------------------------------------------------------
+
+// `searchElements` returns the `ElementTile` interface rather than the flat
+// element type the other queries use, so the media has to come off the
+// `ElementWithMediaTile` variant via an inline fragment.
+const SEARCH_QUERY = `
+  query ($searchTerm: String!, $meta: ListMetadataInput) {
+    searchElements(searchTerm: $searchTerm, meta: $meta) {
+      items {
+        id
+        source { url }
+        ... on ElementWithMediaTile {
+          media { url width height }
+        }
+      }
+      meta { nextPageCursor count }
+    }
+  }
+`;
+
+interface SearchQueryResult {
+  searchElements: {
+    items: Array<{
+      id: number;
+      source: { url: string | null } | null;
+      media: { url: string; width: number; height: number } | null;
+    }>;
+    meta: {
+      nextPageCursor: string | null;
+      count: number;
+    };
+  };
+}
+
+export async function searchElements(
+  searchTerm: string,
+  cursor: string | null
+): Promise<FetchResult> {
+  const data = await gql<SearchQueryResult>(SEARCH_QUERY, {
+    searchTerm,
+    meta: { pageSize: 40, pageCursor: cursor },
+  });
+
+  const result = data.searchElements;
+
+  return {
+    // Upstream orders these by relevance, so unlike the profile feeds they must
+    // never be re-sorted by date.
+    elements: result.items
+      .filter((item) => item.media?.url)
+      .map((item) => ({
+        id: item.id,
+        url: item.media!.url,
+        width: item.media!.width || null,
+        height: item.media!.height || null,
+        type: "image" as const,
+        sourceUrl: item.source?.url ?? null,
+      })),
+    nextCursor: result.meta.nextPageCursor,
+    totalCount: result.meta.count,
+  };
+}
