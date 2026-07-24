@@ -45,12 +45,11 @@ struct Account: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Shortcuts").font(.subheadline).foregroundStyle(.secondary)
-                Shortcut(label: "Search", keys: ["⌘", "F"], or: ["/"])
+                Shortcut(label: "Search", keys: ["/"])
                 Shortcut(label: "Toggle sidebar", keys: ["⌘", "S"])
                 Shortcut(label: "Zen mode", keys: ["⌘", "Z"])
                 Shortcut(label: "Zoom in", keys: ["⌘", "+"])
                 Shortcut(label: "Zoom out", keys: ["⌘", "−"])
-                Shortcut(label: "Reset zoom", keys: ["⌘", "0"])
                 Shortcut(label: "Settings", keys: ["⌘", ","])
             }
 

@@ -45,6 +45,7 @@ struct ContentView: View {
         .keyShortcut("/", enabled: model.hasProfile && !modalPresented) {
             withAnimation(Theme.spring) { model.focusSearch() }
         }
+        .keyShortcut(.escape, enabled: modalPresented, whileEditing: true, action: dismissTop)
         .task { await model.restore() }
         .task { await updater.check() }
         // Silent refresh whenever the app regains focus, so external Cosmos edits
@@ -82,6 +83,15 @@ struct ContentView: View {
 
     private func search() {
         Task { await model.search() }
+    }
+
+    // Esc closes whatever sits on top, matching the ZStack's order.
+    private func dismissTop() {
+        if model.showAccount {
+            closeAccount()
+        } else if zoomed != nil {
+            dismissZoom()
+        }
     }
 
     private func openAccount() {

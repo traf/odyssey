@@ -1,12 +1,11 @@
 import SwiftUI
 
-// Dimmed backdrop + centered rounded card. Click outside or Esc to dismiss.
+// Dimmed backdrop + centered rounded card. Click outside to dismiss; Esc is
+// wired up in `ContentView`, which knows what's on top.
 struct Modal<Content: View>: View {
     var width: CGFloat = 420
     var onDismiss: () -> Void
     @ViewBuilder var content: Content
-
-    @FocusState private var focused: Bool
 
     var body: some View {
         ZStack {
@@ -24,10 +23,5 @@ struct Modal<Content: View>: View {
                         .strokeBorder(.white.opacity(0.08))
                 )
         }
-        .focusable()
-        .focusEffectDisabled()
-        .focused($focused)
-        .onKeyPress(.escape) { onDismiss(); return .handled }
-        .onAppear { focused = true }
     }
 }

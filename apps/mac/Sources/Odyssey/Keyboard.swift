@@ -12,6 +12,8 @@ import AppKit
 fileprivate struct KeyShortcut: ViewModifier {
     let key: String
     let enabled: Bool
+    // Esc has to fire even mid-edit, since a modal can hold a text field.
+    let whileEditing: Bool
     let action: () -> Void
 
     @State private var monitor: Any?
@@ -28,7 +30,7 @@ fileprivate struct KeyShortcut: ViewModifier {
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard event.charactersIgnoringModifiers == key,
                   event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty,
-                  !isEditingText
+                  whileEditing || !isEditingText
             else { return event }
             action()
             return nil   // swallowed, so the character never lands in the UI
@@ -48,7 +50,17 @@ fileprivate struct KeyShortcut: ViewModifier {
 }
 
 extension View {
-    func keyShortcut(_ key: String, enabled: Bool = true, action: @escaping () -> Void) -> some View {
-        modifier(KeyShortcut(key: key, enabled: enabled, action: action))
+    func keyShortcut(
+        _ key: String,
+        enabled: Bool = true,
+        whileEditing: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        modifier(KeyShortcut(key: key, enabled: enabled, whileEditing: whileEditing, action: action))
     }
+}
+
+extension String {
+    // Esc arrives as a bare character, so it rides the same monitor.
+    static let escape = "\u{1B}"
 }

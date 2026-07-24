@@ -57,39 +57,19 @@ struct Sidebar: View {
             )
 
             if updater.updateAvailable {
-                SwiftUI.Button { NSWorkspace.shared.open(Updater.releasesPage) } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "arrow.down.circle")
-                        Text("Update available")
-                            .lineLimit(1)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Capsule())
-                    .glassEffect(.regular, in: .capsule)
+                Pill(
+                    label: "Update available",
+                    disc: true,
+                    action: { NSWorkspace.shared.open(Updater.releasesPage) }
+                ) {
+                    Image(systemName: "arrow.down")
                 }
-                .buttonStyle(.plain)
             }
 
             if let user = model.user {
-                SwiftUI.Button(action: onAccount) {
-                    HStack(spacing: 10) {
-                        Avatar(url: user.avatarUrl, size: 24)
-                        Text(user.displayName)
-                            .lineLimit(1)
-                        Spacer()
-                        Image(systemName: "gearshape")
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Capsule())
-                    .glassEffect(.regular, in: .capsule)
+                Pill(label: user.displayName, trailing: "gearshape", action: onAccount) {
+                    Avatar(url: user.avatarUrl, size: 24)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(8)

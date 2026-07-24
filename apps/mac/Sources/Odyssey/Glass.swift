@@ -14,6 +14,12 @@ struct Glass<Content: View>: View {
 }
 
 extension View {
+    // Glass that can be switched off. `glassEffect` takes no enabled flag, and
+    // an `if` in the view body would change identity mid-animation.
+    func glass<S: Shape>(_ enabled: Bool, in shape: S) -> some View {
+        modifier(ConditionalGlass(enabled: enabled, shape: shape))
+    }
+
     // Rounds an image and adds a subtle hairline border.
     func imageBorder(corner: CGFloat = Theme.corner) -> some View {
         self
@@ -22,5 +28,18 @@ extension View {
                 RoundedRectangle(cornerRadius: corner)
                     .strokeBorder(Theme.border)
             )
+    }
+}
+
+private struct ConditionalGlass<S: Shape>: ViewModifier {
+    let enabled: Bool
+    let shape: S
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.glassEffect(.regular, in: shape)
+        } else {
+            content
+        }
     }
 }

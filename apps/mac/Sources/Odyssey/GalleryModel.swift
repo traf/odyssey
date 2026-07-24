@@ -166,7 +166,7 @@ final class GalleryModel {
         }
     }
 
-    // Reveal the sidebar search field and put the caret in it (⌘F, /).
+    // Reveal the sidebar search field and put the caret in it (/).
     func focusSearch() {
         zenMode = false
         sidebarVisible = true

@@ -21,11 +21,12 @@ struct OdysseyApp: App {
                 .keyboardShortcut(",", modifiers: .command)
             }
             CommandGroup(after: .toolbar) {
+                // No key equivalent: `/` is the search shortcut and AppKit would
+                // swallow it while typing (see Keyboard.swift).
                 SwiftUI.Button("Search") {
                     guard model.hasProfile else { return }
                     withAnimation(Theme.spring) { model.focusSearch() }
                 }
-                .keyboardShortcut("f", modifiers: .command)
                 SwiftUI.Button("Toggle Sidebar") { model.toggleSidebar() }
                     .keyboardShortcut("s", modifiers: .command)
                 SwiftUI.Button("Zen Mode") { withAnimation(Theme.spring) { model.toggleZen() } }

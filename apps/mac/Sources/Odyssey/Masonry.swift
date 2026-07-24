@@ -115,13 +115,12 @@ struct Thumbnail: View {
     }
 }
 
-// Fullscreen image with a hero zoom from its grid tile. Esc / click dismisses.
+// Fullscreen image with a hero zoom from its grid tile. Click dismisses; Esc is
+// wired up in `ContentView`, which knows what's on top.
 struct Lightbox: View {
     let element: CosmosElement
     let namespace: Namespace.ID
     let onDismiss: () -> Void
-
-    @FocusState private var focused: Bool
 
     var body: some View {
         ZStack {
@@ -157,10 +156,5 @@ struct Lightbox: View {
             .zIndex(1)
         }
         .ignoresSafeArea()
-        .focusable()
-        .focusEffectDisabled()
-        .focused($focused)
-        .onKeyPress(.escape) { onDismiss(); return .handled }
-        .onAppear { focused = true }
     }
 }

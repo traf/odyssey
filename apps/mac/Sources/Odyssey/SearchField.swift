@@ -37,7 +37,7 @@ struct SearchField: View {
                 .rotationEffect(.degrees(loading ? 360 : 0))
                 .animation(loading ? .linear(duration: 2).repeatForever(autoreverses: false) : .default, value: loading)
                 .frame(width: iconGlass, height: iconGlass)
-                .modifier(GlassIfNeeded(active: iconGlass != nil))
+                .glass(iconGlass != nil, in: .circle)
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 if let prefix {
                     Text(prefix)
@@ -101,7 +101,7 @@ struct SearchField: View {
                 // macOS hands initial first-responder status to the first text
                 // field in the window, which would open the app already in a
                 // searching state. Give it back so this field only takes focus
-                // on intent (click, ⌘F, /).
+                // on intent (click or /).
                 DispatchQueue.main.async {
                     (NSApp.keyWindow ?? NSApp.windows.first)?.makeFirstResponder(nil)
                 }
@@ -129,17 +129,6 @@ struct SearchField: View {
     private func stopWatching() {
         if let clicks { NSEvent.removeMonitor(clicks) }
         clicks = nil
-    }
-}
-
-private struct GlassIfNeeded: ViewModifier {
-    let active: Bool
-    func body(content: Content) -> some View {
-        if active {
-            content.glassEffect(.regular, in: .circle)
-        } else {
-            content
-        }
     }
 }
 
