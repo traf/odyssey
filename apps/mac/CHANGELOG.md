@@ -4,14 +4,13 @@ Versions follow [semver](https://semver.org); each release is tagged `v<version>
 
 ## 1.1.0
 
-- Added global Cosmos search to sidebar, press / to jump to it
+- Added global Cosmos search to sidebar
 - Added 'view source' button in image view
 - Added in-app update check with an Update button
 - Added app version next to the logo in settings
 - Added an animated border beam to the login field
 - Fixed a crash when pinch-zooming out too fast
 - Fixed Zen mode forgetting whether the sidebar was open
-- Fixed Esc not closing settings or the image view
 
 ## 1.0.0
 
