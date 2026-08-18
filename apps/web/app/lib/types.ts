@@ -5,6 +5,9 @@ export interface CosmosElement {
   height: number | null;
   type: "image" | "video";
   sourceUrl: string | null;
+  // Upstream palette, dominant swatch first. Empty for older elements Cosmos
+  // never extracted, and for search hits (`ElementTile` doesn't expose it).
+  colors: string[];
 }
 
 export interface UserProfile {

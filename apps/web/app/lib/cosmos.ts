@@ -59,6 +59,7 @@ const ELEMENTS_QUERY = `
         type
         sourceUrl
         createdAt
+        colors
         image { url width height }
       }
       meta { nextPageCursor count }
@@ -82,6 +83,7 @@ interface ElementsQueryResult {
       type: string;
       sourceUrl: string | null;
       createdAt: string | null;
+      colors: string[] | null;
       image: { url: string; width: number; height: number } | null;
     }>;
     meta: {
@@ -157,6 +159,7 @@ function mapElements(
     id: number;
     sourceUrl: string | null;
     createdAt: string | null;
+    colors: string[] | null;
     image: { url: string; width: number; height: number } | null;
   }>
 ): CosmosElement[] {
@@ -170,6 +173,7 @@ function mapElements(
       height: item.image!.height || null,
       type: "image" as const,
       sourceUrl: item.sourceUrl,
+      colors: item.colors ?? [],
     }));
 }
 
@@ -225,6 +229,7 @@ const CLUSTER_ELEMENTS_QUERY = `
         type
         sourceUrl
         createdAt
+        colors
         image { url width height }
       }
       meta { nextPageCursor count }
@@ -239,6 +244,7 @@ interface ClusterElementsQueryResult {
       type: string;
       sourceUrl: string | null;
       createdAt: string | null;
+      colors: string[] | null;
       image: { url: string; width: number; height: number } | null;
     }>;
     meta: {
@@ -325,6 +331,7 @@ export async function searchElements(
         height: item.media!.height || null,
         type: "image" as const,
         sourceUrl: item.source?.url ?? null,
+        colors: [],
       })),
     nextCursor: result.meta.nextPageCursor,
     totalCount: result.meta.count,
