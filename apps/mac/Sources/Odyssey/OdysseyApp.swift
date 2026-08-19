@@ -10,7 +10,9 @@ struct OdysseyApp: App {
         WindowGroup {
             ContentView(model: model)
         }
-        .windowStyle(.hiddenTitleBar)
+        // Not `.hiddenTitleBar`: it forces a transparent toolbar background,
+        // which is what draws the soft fade under the toolbar. `TitlebarChrome`
+        // hides the title and manages that background instead.
         .defaultSize(width: 1200, height: 820)
         .commands {
             CommandGroup(replacing: .appSettings) {
@@ -27,10 +29,18 @@ struct OdysseyApp: App {
                     guard model.hasProfile else { return }
                     withAnimation(Theme.spring) { model.focusSearch() }
                 }
-                SwiftUI.Button("Toggle Sidebar") { model.toggleSidebar() }
+                SwiftUI.Button("Toggle Sidebar") { withAnimation(Theme.spring) { model.toggleSidebar() } }
                     .keyboardShortcut("s", modifiers: .command)
                 SwiftUI.Button("Zen Mode") { withAnimation(Theme.spring) { model.toggleZen() } }
                     .keyboardShortcut("z", modifiers: .command)
+                Divider()
+                // Also no key equivalents: bare ↑/↓ would be swallowed while typing.
+                SwiftUI.Button("Previous Cluster") { Task { await model.selectPrevious() } }
+                    .disabled(model.clusters.isEmpty)
+                SwiftUI.Button("Next Cluster") { Task { await model.selectNext() } }
+                    .disabled(model.clusters.isEmpty)
+                SortMenu(model: model)
+                    .disabled(!model.hasProfile)
                 Divider()
                 SwiftUI.Button("Zoom In") { model.zoomIn() }
                     .keyboardShortcut("=", modifiers: .command)
@@ -59,8 +69,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         DispatchQueue.main.async {
             guard let window = NSApp.windows.first else { return }
             // Let content (the sidebar panel) draw up under the titlebar so the
-            // traffic lights sit on it. Pure window chrome — no SwiftUI layout impact.
-            window.titlebarAppearsTransparent = true
+            // traffic lights sit on it. Pure window chrome — no SwiftUI layout
+            // impact. The titlebar itself stays opaque; see `TitlebarChrome`.
             window.styleMask.insert(.fullSizeContentView)
             window.delegate = self
             window.makeKeyAndOrderFront(nil)

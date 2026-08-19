@@ -4,12 +4,21 @@ import AppKit
 struct ContentView: View {
     @Bindable var model: GalleryModel
     @State private var zoomed: CosmosElement?
+    // The rendition the tapped tile was already showing.
+    @State private var zoomedPreview: URL?
     @State private var transitioningID: Int?
+    @State private var zoomToken = 0
     @State private var didActivate = false
     @State private var updater = Updater()
     @Namespace private var hero
 
     private var modalPresented: Bool { zoomed != nil || model.showAccount }
+
+    private var canNavigate: Bool {
+        model.hasProfile && !modalPresented && !model.clusters.isEmpty
+    }
+
+    private var toolbarVisible: Bool { model.hasProfile && !modalPresented && !model.zenMode }
 
     private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
         Binding(
@@ -25,7 +34,12 @@ struct ContentView: View {
             content
 
             if let element = zoomed {
-                Lightbox(element: element, namespace: hero) { dismissZoom() }
+                Lightbox(
+                    element: element,
+                    preview: zoomedPreview,
+                    namespace: hero,
+                    zoomToken: zoomToken
+                ) { dismissZoom() }
             }
 
             if model.showAccount {
@@ -41,9 +55,18 @@ struct ContentView: View {
         .tint(Theme.accent)
         .fontDesign(Theme.fontDesign)
         .preferredColorScheme(.dark)
+        .titlebarChrome()
         .readsFullscreen()
         .keyShortcut("/", enabled: model.hasProfile && !modalPresented) {
             withAnimation(Theme.spring) { model.focusSearch() }
+        }
+        // Walk the sidebar with ↑/↓. Only armed when there are clusters to move
+        // between, so profiles without any keep plain arrow scrolling.
+        .keyShortcut(.upArrow, enabled: canNavigate) {
+            Task { await model.selectPrevious() }
+        }
+        .keyShortcut(.downArrow, enabled: canNavigate) {
+            Task { await model.selectNext() }
         }
         .keyShortcut(.escape, enabled: modalPresented, whileEditing: true, action: dismissTop)
         .task { await model.restore() }
@@ -70,12 +93,19 @@ struct ContentView: View {
                     .transaction { if modalPresented { $0.animation = nil } }
                     .toolbar(removing: .sidebarToggle)
             } detail: {
-                Gallery(model: model, namespace: hero, zoomedID: zoomed?.id, elevatedID: transitioningID, onTap: openZoom)
+                Gallery(
+                    model: model,
+                    namespace: hero,
+                    zoomedID: zoomed?.id,
+                    elevatedID: transitioningID,
+                    zoomToken: zoomToken,
+                    onTap: openZoom
+                )
                     .blur(radius: modalPresented ? 2 : 0)
             }
             // Hide the toolbar over a modal/lightbox backdrop, and in Zen mode
             // (⌘H) where all chrome disappears to leave only the images.
-            .toolbar(modalPresented || model.zenMode ? .hidden : .automatic, for: .windowToolbar)
+            .toolbar(toolbarVisible ? .automatic : .hidden, for: .windowToolbar)
         } else {
             Splash(model: model, onSubmit: search)
         }
@@ -104,20 +134,26 @@ struct ContentView: View {
         withAnimation(Theme.spring) { model.showAccount = false }
     }
 
-    private func openZoom(_ element: CosmosElement) {
+    private func openZoom(_ element: CosmosElement, preview: URL?) {
         Haptic.tap()
+        zoomToken &+= 1
         transitioningID = element.id
+        zoomedPreview = preview
         withAnimation(Theme.spring) { zoomed = element }
     }
 
     private func dismissZoom() {
         Haptic.tap()
-        let id = zoomed?.id
         withAnimation(Theme.spring) { zoomed = nil }
-        // Keep the tile elevated until the morph settles, then drop it.
+        // Keep the tile elevated until the morph settles, then drop it — unless
+        // another zoom has started by then. Keyed on the zoom rather than the
+        // element: reopening the *same* image inside those 450ms used to have its
+        // elevation cancelled by the previous dismissal, dropping the morphing
+        // image behind its neighbours.
+        let token = zoomToken
         Task {
             try? await Task.sleep(for: .milliseconds(450))
-            if transitioningID == id { transitioningID = nil }
+            if zoomToken == token { transitioningID = nil }
         }
     }
 }

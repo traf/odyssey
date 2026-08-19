@@ -1,5 +1,14 @@
 import Foundation
 
+extension Error {
+    // We cancel our own requests all the time — superseding a load, or calling off
+    // a background drain when the sort changes — and URLSession reports that as a
+    // failure like any other. It isn't one, and it must never reach the UI.
+    var isCancellation: Bool {
+        self is CancellationError || (self as? URLError)?.code == .cancelled
+    }
+}
+
 enum APIError: LocalizedError {
     case badResponse(String)
 

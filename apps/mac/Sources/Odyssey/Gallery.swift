@@ -6,15 +6,37 @@ struct Gallery: View {
     var namespace: Namespace.ID
     var zoomedID: Int?
     var elevatedID: Int?
-    var onTap: (CosmosElement) -> Void
+    var zoomToken: Int
+    var onTap: (CosmosElement, URL?) -> Void
 
     @State private var pinchAnchor: Int?
+    @Environment(\.isFullscreen) private var fullscreen
 
     var body: some View {
         // Keep a single container whose toolbar is ALWAYS present. Swapping the
         // inner state (spinner/empty/masonry) never adds/removes the toolbar, so
         // the window titlebar can't recompute and jerk the traffic lights.
         content
+            // Zen is images only — nothing softened at either edge.
+            .overlay(alignment: .top) {
+                if !model.zenMode { Fade(edge: .top) }
+            }
+            .overlay(alignment: .bottom) {
+                if !model.zenMode { Fade(edge: .bottom) }
+            }
+            // Above the fade, and centred on the gallery rather than the window,
+            // so it lands over the middle column. It can't be a toolbar item:
+            // `.principal` on macOS drops into the title slot beside the sidebar
+            // section (measured at x=332 of a 1200pt window), nowhere near centre.
+            .overlay(alignment: .top) {
+                if !model.zenMode && !fullscreen {
+                    Mark()
+                        .titlebarClick { model.scrollToTop() }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: Theme.titlebar)
+                        .ignoresSafeArea(edges: .top)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigation) {
                     SwiftUI.Button {
@@ -24,6 +46,10 @@ struct Gallery: View {
                     }
                 }
                 ToolbarSpacer(.flexible, placement: .primaryAction)
+                ToolbarItem(placement: .primaryAction) {
+                    SortPicker(model: model)
+                }
+                ToolbarSpacer(.fixed, placement: .primaryAction)
                 ToolbarItemGroup(placement: .primaryAction) {
                     SwiftUI.Button {
                         withAnimation(Theme.spring) { model.zoomOut() }
@@ -44,7 +70,9 @@ struct Gallery: View {
 
     @ViewBuilder
     private var content: some View {
-        if let error = model.errorMessage {
+        // A failure only takes the screen when there's nothing to show: a page
+        // that fails deep into a scroll shouldn't replace the grid behind it.
+        if let error = model.errorMessage, model.elements.isEmpty {
             ContentUnavailableView(error, systemImage: "exclamationmark.triangle")
         } else if model.isLoading && model.elements.isEmpty {
             Spinner()
@@ -60,8 +88,10 @@ struct Gallery: View {
                 namespace: namespace,
                 hiddenID: zoomedID,
                 elevatedID: elevatedID,
+                zoomToken: zoomToken,
                 loadingMore: model.isLoading,
                 zen: model.zenMode,
+                scrollTopToken: model.scrollTopToken,
                 onTap: onTap,
                 onReachEnd: { Task { await model.loadMore() } }
             )

@@ -1,6 +1,8 @@
 import SwiftUI
 
 // A single keyboard-shortcut row: label on the left, key caps on the right.
+// Rows that cover a pair share the modifier and list both keys (⌘ + −), so
+// every cap lands on the same rhythm down the column.
 struct Shortcut: View {
     let label: String
     let keys: [String]

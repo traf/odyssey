@@ -28,8 +28,14 @@ fileprivate struct KeyShortcut: ViewModifier {
     private func install() {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Arrows always carry .function/.numericPad, so those two aren't
+            // modifiers as far as a bare-key shortcut is concerned.
+            let modifiers = event.modifierFlags
+                .intersection(.deviceIndependentFlagsMask)
+                .subtracting([.function, .numericPad])
+
             guard event.charactersIgnoringModifiers == key,
-                  event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty,
+                  modifiers.isEmpty,
                   whileEditing || !isEditingText
             else { return event }
             action()
@@ -61,6 +67,9 @@ extension View {
 }
 
 extension String {
-    // Esc arrives as a bare character, so it rides the same monitor.
+    // Esc and the arrows arrive as bare characters, so they ride the same
+    // monitor. The arrows are AppKit's function-key code points.
     static let escape = "\u{1B}"
+    static let upArrow = "\u{F700}"
+    static let downArrow = "\u{F701}"
 }

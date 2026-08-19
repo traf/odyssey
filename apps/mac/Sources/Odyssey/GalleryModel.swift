@@ -10,7 +10,9 @@ final class GalleryModel {
     var totalCount = 0
     var clusters: [CosmosCluster] = []
     var selection: Selection = .all
-    var elements: [CosmosElement] = []
+    // What the grid shows: `fetched` in `sort`'s order.
+    private(set) var elements: [CosmosElement] = []
+    private(set) var sort: Sort = .recent
     var columnCount = 3
     var sidebarVisible = true
     var zenMode = false
@@ -75,6 +77,10 @@ final class GalleryModel {
             nextCursor = result.nextCursor
         }
 
+        // A refresh drops back to the first page, so a sorted view has to be
+        // filled in again.
+        drain()
+
         // Refresh cluster counts silently (only replaces if actually changed).
         if let userId, let clusters = try? await API.clusters(userId: userId).clusters,
            token == loadToken,
@@ -87,12 +93,13 @@ final class GalleryModel {
     // Clear the profile and forget the saved username (back to splash).
     func signOut() {
         UserDefaults.standard.removeObject(forKey: Self.savedUsernameKey)
+        drainTask?.cancel()
         username = ""
         query = ""
         user = nil
         totalCount = 0
         clusters = []
-        elements = []
+        clear()
         userId = nil
         nextCursor = nil
         selection = .all
@@ -115,6 +122,20 @@ final class GalleryModel {
         Haptic.tap()
     }
 
+    // Bumped to send the grid back to the top. A token rather than an offset:
+    // where the scroll view sits is the scroll view's business, and this only has
+    // to survive the trip from the header to the gallery.
+    private(set) var scrollTopToken = 0
+
+    func scrollToTop() {
+        sendToTop()
+        Haptic.tap()
+    }
+
+    private func sendToTop() {
+        scrollTopToken &+= 1
+    }
+
     func setColumns(_ count: Int) {
         let clamped = count.clamped(to: Self.minColumns...Self.maxColumns)
         guard clamped != columnCount else { return }
@@ -124,6 +145,10 @@ final class GalleryModel {
 
     private var userId: String?
     private var nextCursor: String?
+    // Elements in API order, so switching back to Recently added restores it.
+    private var fetched: [CosmosElement] = []
+    private var shuffleSeed = UInt64.random(in: .min ... .max)
+    private var drainTask: Task<Void, Never>?
     // Monotonic token: only the most recent selection load may mutate state.
     private var loadToken = 0
     // Bumped to ask the search field to take focus.
@@ -143,6 +168,14 @@ final class GalleryModel {
     }
 
     var hasProfile: Bool { user != nil }
+
+    // Cosmos carries no palette on older elements and none at all on search
+    // hits. With nothing loaded to compare, ordering by color would silently
+    // leave the grid exactly as it was, so the option isn't offered.
+    var sortOptions: [Sort] {
+        let hasPalettes = fetched.contains { !($0.colors ?? []).isEmpty }
+        return Sort.allCases.filter { $0 != .color || hasPalettes }
+    }
 
     // Only spin the search field's mark while a search fetches its first page —
     // not on profile/cluster fetches, and not on the paging that fires
@@ -182,7 +215,7 @@ final class GalleryModel {
         errorMessage = nil
         user = nil
         clusters = []
-        elements = []
+        clear()
         userId = nil
         nextCursor = nil
         selection = .all
@@ -198,10 +231,11 @@ final class GalleryModel {
 
             UserDefaults.standard.set(result.user.username, forKey: Self.savedUsernameKey)
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation { errorMessage = error.localizedDescription }
         }
 
         isLoading = false
+        drain()
     }
 
     func select(_ newSelection: Selection) async {
@@ -218,12 +252,12 @@ final class GalleryModel {
         errorMessage = nil
         isLoading = true
         // Clear the old view immediately so we never show another cluster's images.
-        if changed { elements = [] }
+        if changed { clear() }
         // Leaving search returns to the profile, so drop the stale term.
         if !newSelection.isSearch { query = "" }
 
         guard newSelection.isSearch || userId != nil else {
-            elements = []
+            clear()
             isLoading = false
             return
         }
@@ -234,12 +268,18 @@ final class GalleryModel {
             setElements(result.elements)
             nextCursor = result.nextCursor
         } catch {
-            guard token == loadToken else { return }
-            errorMessage = error.localizedDescription
+            // Fall through either way: a superseded load leaves `isLoading` to
+            // whoever replaced it, and a cancelled one still has to clear it.
+            if token == loadToken, !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
 
         guard token == loadToken else { return }
         isLoading = false
+
+        // Fill in the rest of the new selection if it's showing sorted.
+        drain()
     }
 
     func loadMore() async {
@@ -252,11 +292,12 @@ final class GalleryModel {
             let result = try await fetch(current, cursor: cursor)
             // Bail if the selection changed while paging.
             guard token == loadToken, current == selection else { return }
-            elements.append(contentsOf: result.elements)
+            append(result.elements)
             nextCursor = result.nextCursor
         } catch {
-            guard token == loadToken else { return }
-            errorMessage = error.localizedDescription
+            if token == loadToken, !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
         guard token == loadToken else { return }
         isLoading = false
@@ -279,7 +320,97 @@ final class GalleryModel {
 
     // Avoid pointless re-renders (image reloads) when the data is unchanged.
     private func setElements(_ new: [CosmosElement]) {
-        guard new.map(\.id) != elements.map(\.id) else { return }
-        elements = new
+        guard new.map(\.id) != fetched.map(\.id) else { return }
+        fetched = new
+        resort()
+    }
+
+    private func append(_ new: [CosmosElement]) {
+        fetched.append(contentsOf: new)
+        resort()
+    }
+
+    private func clear() {
+        fetched = []
+        elements = []
+    }
+
+    // MARK: - Sorting
+
+    func setSort(_ new: Sort) {
+        // Every pick of Random re-rolls the seed: choosing it again, or coming
+        // back to it from another order, asks for a *different* shuffle rather
+        // than a replay of the last one. Keeping the seed across picks is what
+        // made Random look fixed.
+        if new == .random {
+            shuffleSeed = .random(in: .min ... .max)
+        } else if new == sort {
+            return
+        }
+
+        sort = new
+        Haptic.tap(.levelChange)
+        resort()
+        // A new order makes wherever you were scrolled to meaningless, so go back
+        // to the start of it rather than dropping the reader into the middle.
+        sendToTop()
+        drain()
+    }
+
+    func reshuffle() {
+        shuffleSeed = .random(in: .min ... .max)
+        Haptic.tap(.levelChange)
+        resort()
+        sendToTop()
+    }
+
+    private func resort() {
+        // Search results are relevance-ranked; any local order would wreck them.
+        elements = selection.isSearch ? fetched : sort.apply(to: fetched, seed: shuffleSeed)
+    }
+
+    // A local sort can only order what's loaded, so a non-default one quietly
+    // pulls the rest of the feed in — page by page, since the API is
+    // cursor-paginated — re-sorting as each lands until the order is true for
+    // the whole collection. After that, switching sorts is instant.
+    private func drain() {
+        drainTask?.cancel()
+        guard !sort.isDefault, !selection.isSearch else { return }
+
+        let token = loadToken
+        drainTask = Task {
+            while !Task.isCancelled, token == loadToken, nextCursor != nil, !sort.isDefault {
+                // Yield to whatever is already in flight (the initial load, or a
+                // page the user scrolled into) rather than spinning on it.
+                if isLoading {
+                    try? await Task.sleep(for: .milliseconds(120))
+                    continue
+                }
+                await loadMore()
+            }
+        }
+    }
+
+    // MARK: - Cluster navigation
+
+    // ↑/↓ walk the sidebar: All elements, then the clusters in their listed order.
+    private var navigableSelections: [Selection] {
+        [.all] + clusters.map { Selection.cluster($0.id) }
+    }
+
+    func selectPrevious() async { await step(-1) }
+    func selectNext() async { await step(1) }
+
+    private func step(_ delta: Int) async {
+        let list = navigableSelections
+        guard list.count > 1 else { return }
+
+        // Search results sit outside the list, so arrowing out of them enters
+        // from whichever end the key is heading away from.
+        let current = list.firstIndex(of: selection) ?? (delta > 0 ? -1 : list.count)
+        let next = (current + delta).clamped(to: 0...(list.count - 1))
+        guard next != current else { return }
+
+        await select(list[next])
     }
 }
