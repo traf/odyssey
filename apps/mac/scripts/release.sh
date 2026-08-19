@@ -73,31 +73,13 @@ codesign --force --deep --options runtime --timestamp \
   --sign "$DEV_ID_APP" "$APP"
 codesign --verify --strict --verbose=2 "$APP"
 
-# --- Package DMG (light window, dark drag arrow) -----------------------------
-# dmgbuild writes the .DS_Store directly (no Finder/AppleScript), so it's
-# deterministic and headless. macOS Finder forces DMG icon labels black with no
-# way to change it, so we ship a LIGHT background (rendered by background.swift)
-# with a dark SF-Symbol drag arrow — black labels stay legible on it. text_size
-# must stay ≥10 or macOS 26+ rejects the whole icon-view.
-#
-# macOS 26+ Finder discards a .DS_Store carrying a stale background Bookmark
-# (pBBk) — dropping icon_size + background. dmgbuild PR #275 fixes this by not
-# writing pBBk; it's unreleased on PyPI (1.6.5), so patch it here idempotently.
+# --- Package DMG --------------------------------------------------------------
+# Same pipeline as vercel-labs/native: HFS+ writable image, Finder AppleScript
+# for the window (background, icon size, positions), then UDZO. Finder draws
+# the names; the art is dmg.jpg + arrow (Retina TIFF).
 echo "→ Building DMG…"
 rm -f "$DMG"
-BG="$MAC/scripts/assets/dmg-background.png"
-swift "$MAC/scripts/background.swift" "$BG" >/dev/null
-python3 - <<'PY'
-import re, dmgbuild.core as c
-p = c.__file__
-src = open(p).read()
-if 'd["."]["pBBk"]' in src:
-    src = re.sub(r'\n\s*if background_bmk:\n\s*d\["\."\]\["pBBk"\] = background_bmk', "", src)
-    open(p, "w").write(src)
-    print("→ Patched dmgbuild for macOS 26+ (removed pBBk)")
-PY
-export DMG_APP="$APP" DMG_BG="$BG"
-python3 -m dmgbuild -s "$MAC/scripts/dmg.py" -D app="$APP" "$APP_NAME" "$DMG"
+"$HERE/dmg.sh" "$APP" "$DMG"
 codesign --force --sign "$DEV_ID_APP" "$DMG"
 
 # --- Notarize + staple -------------------------------------------------------
