@@ -28,7 +28,11 @@ struct Fade: View {
                     .fill(.ultraThinMaterial)
                     .mask(
                         LinearGradient(
-                            colors: [.black.opacity(0.8), .clear],
+                            stops: [
+                                .init(color: .black.opacity(0.8), location: 0),
+                                .init(color: .black.opacity(0.25), location: 0.5),
+                                .init(color: .clear, location: 1),
+                            ],
                             startPoint: edge == .top ? .top : .bottom,
                             endPoint: edge == .top ? .bottom : .top
                         )
@@ -41,7 +45,13 @@ struct Fade: View {
         // drew a line down it.
         .overlay {
             LinearGradient(
-                colors: [.black.opacity(Theme.fadeTint), .clear],
+                stops: [
+                    .init(color: .black.opacity(Theme.fadeTint), location: 0),
+                    .init(color: .black.opacity(Theme.fadeTint * 0.35), location: 0.28),
+                    .init(color: .black.opacity(Theme.fadeTint * 0.08), location: 0.55),
+                    .init(color: .clear, location: 0.78),
+                    .init(color: .clear, location: 1),
+                ],
                 startPoint: edge == .top ? .top : .bottom,
                 endPoint: edge == .top ? .bottom : .top
             )
@@ -90,16 +100,14 @@ final class VariableBlurView: NSView {
         self.edge = edge
         super.init(frame: .zero)
         wantsLayer = true
-        // Sample the window at half resolution, as the system's own cheap blurs
-        // do: a quarter of the pixels to blur every frame, and at this radius
-        // there's nothing to see in the difference.
-        layer?.setValue(0.5, forKey: "scale")
     }
 
     required init?(coder: NSCoder) { fatalError("Not loaded from a nib") }
 
     override func makeBackingLayer() -> CALayer {
-        (NSClassFromString("CABackdropLayer") as? CALayer.Type)?.init() ?? CALayer()
+        let layer = (NSClassFromString("CABackdropLayer") as? CALayer.Type)?.init() ?? CALayer()
+        layer.backgroundColor = NSColor.clear.cgColor
+        return layer
     }
 
     // The mask is drawn at the strip's size, so it's rebuilt on resize but not on
@@ -108,7 +116,10 @@ final class VariableBlurView: NSView {
         super.layout()
         guard bounds.width > 0, bounds.height > 0, bounds.size != ramped else { return }
         ramped = bounds.size
-        layer?.masksToBounds = true
+        // Don't clip the backdrop to the view: `masksToBounds` is a hard rect
+        // and composites as a cut even where the mask is clear. The mask is
+        // the bound.
+        layer?.masksToBounds = false
         layer?.filters = filter(size: bounds.size).map { [$0] }
     }
 
@@ -147,18 +158,33 @@ final class VariableBlurView: NSView {
               ),
               let ramp = CGGradient(
                 colorsSpace: space,
+                colors: [
+                    CGColor(gray: 0, alpha: 1),
+                    CGColor(gray: 0, alpha: 0.45),
+                    CGColor(gray: 0, alpha: 0.12),
+                    CGColor(gray: 0, alpha: 0.02),
+                    CGColor(gray: 0, alpha: 0),
+                ] as CFArray,
+                locations: [0, 0.28, 0.52, 0.78, 1]
+              ),
+              let side = CGGradient(
+                colorsSpace: space,
                 colors: [CGColor(gray: 0, alpha: 1), CGColor(gray: 0, alpha: 0)] as CFArray,
                 locations: [0, 1]
               )
         else { return nil }
 
         // Row zero is the top of the image and the context counts up from the
-        // bottom, so the strong end sits at `height` for the top strip.
+        // bottom, so the strong end sits at `height` for the top strip. Stop
+        // well short of the inner edge so the last blur pixels die inside the
+        // layer instead of on its bound.
+        let pad: CGFloat = 36
         let strong = edge == .top ? size.height : 0
+        let weak = edge == .top ? pad : size.height - pad
         context.drawLinearGradient(
             ramp,
             start: CGPoint(x: 0, y: strong),
-            end: CGPoint(x: 0, y: size.height - strong),
+            end: CGPoint(x: 0, y: weak),
             options: []
         )
 
@@ -167,13 +193,13 @@ final class VariableBlurView: NSView {
         // inset itself is touched.
         context.setBlendMode(.destinationIn)
         context.drawLinearGradient(
-            ramp,
+            side,
             start: CGPoint(x: Theme.fadeInset, y: 0),
             end: .zero,
             options: .drawsBeforeStartLocation
         )
         context.drawLinearGradient(
-            ramp,
+            side,
             start: CGPoint(x: size.width - Theme.fadeInset, y: 0),
             end: CGPoint(x: size.width, y: 0),
             options: .drawsBeforeStartLocation

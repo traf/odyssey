@@ -21,11 +21,12 @@ enum Theme {
     static let gap: CGFloat = 10
     static let corner: CGFloat = 20
     // Depth of the soft fade at each edge of the grid, and the blur radius it
-    // reaches against the window edge.
-    static let fade: CGFloat = 80
-    static let fadeBlur: CGFloat = 4
-    // Shade at the very edge, easing to nothing across the strip.
-    static let fadeTint: Double = 0.4
+    // reaches against the window edge. The strip is taller than the blur is
+    // strong: a long tail to zero is what keeps the inner edge from reading as
+    // a cut. Radius and tint stay small so it reads as depth, not a band.
+    static let fade: CGFloat = 112
+    static let fadeBlur: CGFloat = 2
+    static let fadeTint: Double = 0.2
     // How far in from the sides the fade eases up, so it never cuts on a divider.
     static let fadeInset: CGFloat = 24
     // Titlebar band, the glass controls sitting in it, and the mark's capsule —
