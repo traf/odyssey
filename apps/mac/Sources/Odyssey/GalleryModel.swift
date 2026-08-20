@@ -54,32 +54,29 @@ final class GalleryModel {
     }
 
     // Silent background reload of whatever is currently on screen (All or a
-    // cluster). No spinner, no blanking — setElements diffs by id, so identical
-    // data is a true no-op and unchanged data never re-renders (no flashes).
-    // Called on launch and whenever the app regains focus so external edits in
-    // Cosmos (e.g. a deleted element) appear without any visible reload.
-    // Search results are relevance-ranked rather than chronological, so silently
-    // re-fetching them would reshuffle the grid under the user. Leave them alone.
+    // cluster). No spinner, no blanking — mergeFresh keeps pages the user has
+    // already scrolled in, so regaining focus can't shrink the grid and yank
+    // the scroll back to the top. Search results are relevance-ranked rather
+    // than chronological, so silently re-fetching them would reshuffle the
+    // grid under the user. Leave them alone.
     func refreshCurrent() async {
         guard hasProfile, !selection.isSearch else { return }
         let token = loadToken
         let current = selection
 
         if current == .all {
-            // resolve() carries the fresh total + first page; apply() diffs.
+            // resolve() carries the fresh total + first page; mergeFresh diffs.
             guard let result = try? await API.resolve(username: user?.username ?? username),
                   token == loadToken, selection == .all else { return }
-            apply(result)
+            user = result.user
+            userId = result.user.id
+            totalCount = result.totalCount
+            mergeFresh(result.elements, cursor: result.nextCursor)
         } else {
             guard let result = try? await fetch(current, cursor: nil),
                   token == loadToken, current == selection else { return }
-            setElements(result.elements)
-            nextCursor = result.nextCursor
+            mergeFresh(result.elements, cursor: result.nextCursor)
         }
-
-        // A refresh drops back to the first page, so a sorted view has to be
-        // filled in again.
-        drain()
 
         // Refresh cluster counts silently (only replaces if actually changed).
         if let userId, let clusters = try? await API.clusters(userId: userId).clusters,
@@ -323,6 +320,43 @@ final class GalleryModel {
         guard new.map(\.id) != fetched.map(\.id) else { return }
         fetched = new
         resort()
+    }
+
+    // Fold a freshly fetched first page into what's already on screen.
+    // Replacing `fetched` with that page is what yanked the grid back to the
+    // top whenever the app regained focus: everything past page one vanished,
+    // the content shortened, and the scroll view sprang up to follow it.
+    private func mergeFresh(_ page: [CosmosElement], cursor: String?) {
+        let pageIDs = page.map(\.id)
+        let loadedIDs = fetched.map(\.id)
+
+        // First page is still the head of what we have (or we only ever had
+        // the first page). Leave the tail and its cursor alone.
+        if loadedIDs.starts(with: pageIDs) { return }
+
+        // We only had a prefix of the first page (cache, interrupted load).
+        if pageIDs.starts(with: loadedIDs) {
+            setElements(page)
+            nextCursor = cursor
+            drain()
+            return
+        }
+
+        let loaded = Set(loadedIDs)
+        if !loaded.isEmpty, page.contains(where: { loaded.contains($0.id) }) {
+            // New elements appeared above the existing feed. Keep everything
+            // already loaded; stick the newcomers on front in page order.
+            let newcomers = page.filter { !loaded.contains($0.id) }
+            fetched = newcomers + fetched.filter { item in
+                !newcomers.contains(where: { $0.id == item.id })
+            }
+            resort()
+            return
+        }
+
+        setElements(page)
+        nextCursor = cursor
+        drain()
     }
 
     private func append(_ new: [CosmosElement]) {

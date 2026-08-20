@@ -114,11 +114,19 @@ final class ClickCatcher: NSView {
         return bounds.contains(convert(point, from: superview)) ? self : nil
     }
 
-    override func mouseDown(with event: NSEvent) {}
+    override func mouseDown(with event: NSEvent) {
+        downInside = true
+    }
 
     override func mouseUp(with event: NSEvent) {
-        action?()
+        // Only a click that started here. A mouseUp delivered because the
+        // window just became key (quit another app, click to focus) used to
+        // fire scroll-to-top as if the mark had been clicked.
+        if downInside { action?() }
+        downInside = false
     }
+
+    private var downInside = false
 }
 
 extension View {
