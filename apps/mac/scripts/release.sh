@@ -43,7 +43,7 @@ rm -rf "$DIST" && mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$APP_NAME"
 # Loose in Contents/Resources, where `Asset` reads them (AppIcon.icns, icon.png,
 # logo.png). Never ship SwiftPM's .bundle: `Bundle.module` can't find it there.
-cp -R "Sources/Odyssey/Resources/." "$APP/Contents/Resources/"
+rsync -a --exclude='.*' "Sources/Odyssey/Resources/" "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
