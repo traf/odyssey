@@ -36,15 +36,14 @@ echo "→ Releasing $APP_NAME $VERSION"
 echo "→ Building release binary…"
 swift build -c release >/dev/null
 BIN="$(swift build -c release --show-bin-path)/$APP_NAME"
-BUNDLE="$(swift build -c release --show-bin-path)/${APP_NAME}_${APP_NAME}.bundle"
 
 # --- Assemble .app bundle ----------------------------------------------------
 echo "→ Assembling $APP_NAME.app…"
 rm -rf "$DIST" && mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$APP_NAME"
-# SwiftPM resource bundle (icon.png, logo.png, AppIcon.icns)
-[ -d "$BUNDLE" ] && cp -R "$BUNDLE" "$APP/Contents/Resources/"
-cp "Sources/Odyssey/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+# Loose in Contents/Resources, where `Asset` reads them (AppIcon.icns, icon.png,
+# logo.png). Never ship SwiftPM's .bundle: `Bundle.module` can't find it there.
+cp -R "Sources/Odyssey/Resources/." "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

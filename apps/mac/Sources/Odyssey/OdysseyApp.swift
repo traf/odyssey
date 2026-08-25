@@ -61,8 +61,7 @@ struct OdysseyApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        if let url = Bundle.module.url(forResource: "icon", withExtension: "png"),
-           let icon = NSImage(contentsOf: url) {
+        if let icon = Asset.image("icon") {
             NSApp.applicationIconImage = icon
         }
         NSApp.activate(ignoringOtherApps: true)

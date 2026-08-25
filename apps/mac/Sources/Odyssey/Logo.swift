@@ -17,8 +17,7 @@ struct Logo: View {
     var size: CGFloat = 44
 
     var body: some View {
-        if let url = Bundle.module.url(forResource: "logo", withExtension: "png"),
-           let image = NSImage(contentsOf: url) {
+        if let image = Asset.image("logo") {
             Image(nsImage: image)
                 .resizable()
                 .interpolation(.high)

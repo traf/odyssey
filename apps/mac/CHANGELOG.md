@@ -2,6 +2,12 @@
 
 Versions follow [semver](https://semver.org); each release is tagged `v<version>` on GitHub (see [AGENTS.md](../../AGENTS.md) → Shipping).
 
+## 1.2.1
+
+- Fixed the app crashing on launch on every Mac but the one that built it
+
+
+
 ## 1.2.0
 
 - Added a sort menu & logo to the toolbar
