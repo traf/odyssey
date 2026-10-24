@@ -86,7 +86,7 @@ struct ContentView: View {
             Loading()
         } else if model.hasProfile {
             NavigationSplitView(columnVisibility: sidebarVisibility) {
-                Sidebar(model: model, updater: updater, onAccount: openAccount)
+                Sidebar(model: model, onAccount: openAccount)
                     .blur(radius: modalPresented ? 2 : 0)
                     // While a modal/lightbox is up, drop any inherited animation so
                     // the zoom spring can't drive layout in the sidebar (no shift).
