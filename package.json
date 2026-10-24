@@ -10,5 +10,13 @@
     "build": "npm run build --workspace apps/web",
     "start": "npm run start --workspace apps/web",
     "lint": "npm run lint --workspace apps/web"
+  },
+  "overrides": {
+    "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
+    "nanoid@>=3.0.0 <3.3.18": "3.3.18",
+    "source-map-js@>=1.0.0 <1.2.2": "1.2.2",
+    "brace-expansion@>=1.0.0 <1.1.21": "1.1.21",
+    "zod@>=4.0.0 <4.6.6": "4.6.6",
+    "@humanfs/node@>=0.16.0 <0.16.8": "0.16.8"
   }
 }
