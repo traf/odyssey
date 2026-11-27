@@ -47,21 +47,37 @@ const USER_QUERY = `
   }
 `;
 
+// Every element query returns the `ElementTile` interface; the media lives on
+// the `MediaElementTile` variant.
+const TILE_FIELDS = `
+  id
+  createdAt
+  source { url }
+  ... on MediaElementTile {
+    media { url width height }
+  }
+`;
+
+interface Tile {
+  id: number;
+  createdAt: string | null;
+  source: { url: string | null } | null;
+  media?: { url: string; width: number; height: number } | null;
+}
+
+interface TilePage {
+  items: Tile[];
+  meta: { nextPageCursor: string | null; count: number };
+}
+
 const ELEMENTS_QUERY = `
   query ($ownerId: UserId!, $cursor: String) {
-    userPublicElementsV1(
+    userPublicElements(
       userId: $ownerId
       filters: {}
       meta: { pageSize: 40, pageCursor: $cursor }
     ) {
-      items {
-        id
-        type
-        sourceUrl
-        createdAt
-        colors
-        image { url width height }
-      }
+      items { ${TILE_FIELDS} }
       meta { nextPageCursor count }
     }
   }
@@ -77,20 +93,7 @@ interface UserQueryResult {
 }
 
 interface ElementsQueryResult {
-  userPublicElementsV1: {
-    items: Array<{
-      id: number;
-      type: string;
-      sourceUrl: string | null;
-      createdAt: string | null;
-      colors: string[] | null;
-      image: { url: string; width: number; height: number } | null;
-    }>;
-    meta: {
-      nextPageCursor: string | null;
-      count: number;
-    };
-  };
+  userPublicElements: TilePage;
 }
 
 interface ResolveResult {
@@ -143,7 +146,7 @@ export async function fetchElements(
     cursor,
   });
 
-  const result = data.userPublicElementsV1;
+  const result = data.userPublicElements;
 
   return {
     elements: mapElements(result.items),
@@ -154,26 +157,24 @@ export async function fetchElements(
 
 // Filters to images, sorts newest-added first (Cosmos returns cluster elements
 // in an arbitrary order), and maps to the public shape.
-function mapElements(
-  items: Array<{
-    id: number;
-    sourceUrl: string | null;
-    createdAt: string | null;
-    colors: string[] | null;
-    image: { url: string; width: number; height: number } | null;
-  }>
-): CosmosElement[] {
+function mapElements(items: Tile[]): CosmosElement[] {
+  return mapTiles(
+    [...items].sort(
+      (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+    )
+  );
+}
+
+function mapTiles(items: Tile[]): CosmosElement[] {
   return items
-    .filter((item) => item.image?.url)
-    .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+    .filter((item) => item.media?.url)
     .map((item) => ({
       id: item.id,
-      url: item.image!.url,
-      width: item.image!.width || null,
-      height: item.image!.height || null,
+      url: item.media!.url,
+      width: item.media!.width || null,
+      height: item.media!.height || null,
       type: "image" as const,
-      sourceUrl: item.sourceUrl,
-      colors: item.colors ?? [],
+      sourceUrl: item.source?.url ?? null,
     }));
 }
 
@@ -222,35 +223,21 @@ export async function fetchClusters(userId: string): Promise<CosmosCluster[]> {
 // ---------------------------------------------------------------------------
 
 const CLUSTER_ELEMENTS_QUERY = `
-  query ($filters: ElementListFilters, $meta: ListMetadataInput) {
-    elements(filters: $filters, meta: $meta) {
-      items {
-        id
-        type
-        sourceUrl
-        createdAt
-        colors
-        image { url width height }
-      }
+  query ($clusterId: ClusterId, $cursor: String) {
+    clusterConnections(
+      clusterId: $clusterId
+      meta: { pageSize: 40, pageCursor: $cursor }
+    ) {
+      items { element { ${TILE_FIELDS} } }
       meta { nextPageCursor count }
     }
   }
 `;
 
 interface ClusterElementsQueryResult {
-  elements: {
-    items: Array<{
-      id: number;
-      type: string;
-      sourceUrl: string | null;
-      createdAt: string | null;
-      colors: string[] | null;
-      image: { url: string; width: number; height: number } | null;
-    }>;
-    meta: {
-      nextPageCursor: string | null;
-      count: number;
-    };
+  clusterConnections: {
+    items: Array<{ element: Tile }>;
+    meta: TilePage["meta"];
   };
 }
 
@@ -259,14 +246,14 @@ export async function fetchClusterElements(
   cursor: string | null
 ): Promise<FetchResult> {
   const data = await gql<ClusterElementsQueryResult>(CLUSTER_ELEMENTS_QUERY, {
-    filters: { clusterId },
-    meta: { pageSize: 40, pageCursor: cursor },
+    clusterId,
+    cursor,
   });
 
-  const result = data.elements;
+  const result = data.clusterConnections;
 
   return {
-    elements: mapElements(result.items),
+    elements: mapElements(result.items.map((item) => item.element)),
     nextCursor: result.meta.nextPageCursor,
     totalCount: result.meta.count,
   };
@@ -276,36 +263,17 @@ export async function fetchClusterElements(
 // Global search (paginated)
 // ---------------------------------------------------------------------------
 
-// `searchElements` returns the `ElementTile` interface rather than the flat
-// element type the other queries use, so the media has to come off the
-// `ElementWithMediaTile` variant via an inline fragment.
 const SEARCH_QUERY = `
   query ($searchTerm: String!, $meta: ListMetadataInput) {
     searchElements(searchTerm: $searchTerm, meta: $meta) {
-      items {
-        id
-        source { url }
-        ... on ElementWithMediaTile {
-          media { url width height }
-        }
-      }
+      items { ${TILE_FIELDS} }
       meta { nextPageCursor count }
     }
   }
 `;
 
 interface SearchQueryResult {
-  searchElements: {
-    items: Array<{
-      id: number;
-      source: { url: string | null } | null;
-      media: { url: string; width: number; height: number } | null;
-    }>;
-    meta: {
-      nextPageCursor: string | null;
-      count: number;
-    };
-  };
+  searchElements: TilePage;
 }
 
 export async function searchElements(
@@ -322,17 +290,7 @@ export async function searchElements(
   return {
     // Upstream orders these by relevance, so unlike the profile feeds they must
     // never be re-sorted by date.
-    elements: result.items
-      .filter((item) => item.media?.url)
-      .map((item) => ({
-        id: item.id,
-        url: item.media!.url,
-        width: item.media!.width || null,
-        height: item.media!.height || null,
-        type: "image" as const,
-        sourceUrl: item.source?.url ?? null,
-        colors: [],
-      })),
+    elements: mapTiles(result.items),
     nextCursor: result.meta.nextPageCursor,
     totalCount: result.meta.count,
   };

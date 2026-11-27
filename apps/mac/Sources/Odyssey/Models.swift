@@ -7,9 +7,6 @@ struct CosmosElement: Codable, Identifiable {
     let height: Int?
     let type: String
     let sourceUrl: String?
-    // Palette from Cosmos, dominant swatch first. Optional: cached responses
-    // predating the field decode without it, and search hits never carry one.
-    let colors: [String]?
 
     var ratio: CGFloat {
         guard let w = width, let h = height, w > 0, h > 0 else { return 1 }

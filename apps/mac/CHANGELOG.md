@@ -2,6 +2,11 @@
 
 Versions follow [semver](https://semver.org); each release is tagged `v<version>` on GitHub (see [AGENTS.md](../../AGENTS.md) → Shipping).
 
+## 1.2.2
+
+- Fixed profiles & clusters failing to load with “Cosmos API error: 400”
+- Removed the Color sort, since Cosmos no longer provides image colors
+
 ## 1.2.1
 
 - Fixed the app crashing on launch on every Mac but the one that built it

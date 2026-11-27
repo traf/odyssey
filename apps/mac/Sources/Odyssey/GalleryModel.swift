@@ -166,14 +166,6 @@ final class GalleryModel {
 
     var hasProfile: Bool { user != nil }
 
-    // Cosmos carries no palette on older elements and none at all on search
-    // hits. With nothing loaded to compare, ordering by color would silently
-    // leave the grid exactly as it was, so the option isn't offered.
-    var sortOptions: [Sort] {
-        let hasPalettes = fetched.contains { !($0.colors ?? []).isEmpty }
-        return Sort.allCases.filter { $0 != .color || hasPalettes }
-    }
-
     // Only spin the search field's mark while a search fetches its first page —
     // not on profile/cluster fetches, and not on the paging that fires
     // constantly as you scroll results.

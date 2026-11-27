@@ -8,7 +8,6 @@ import AppKit
 // so the result is true for the whole collection, not just the first page.
 enum Sort: String, CaseIterable, Identifiable {
     case recent
-    case color
     case random
 
     var id: String { rawValue }
@@ -16,7 +15,6 @@ enum Sort: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .recent: "Recent"
-        case .color: "Color"
         case .random: "Random"
         }
     }
@@ -29,8 +27,6 @@ enum Sort: String, CaseIterable, Identifiable {
         switch self {
         case .recent:
             elements
-        case .color:
-            elements.stablySorted(by: \.colorKey)
         case .random:
             elements.stablySorted { shuffleKey($0.id, seed) }
         }
@@ -38,10 +34,9 @@ enum Sort: String, CaseIterable, Identifiable {
 }
 
 private extension Array where Element == CosmosElement {
-    // Equal keys keep their API order, which matters twice over: elements Cosmos
-    // extracted no palette for stay where recency put them rather than landing
-    // in id order, and re-sorting after a drained page arrives can never
-    // disturb what's already placed. Keys are computed once, not per comparison.
+    // Equal keys keep their API order, so re-sorting after a drained page
+    // arrives can never disturb what's already placed. Keys are computed once,
+    // not per comparison.
     func stablySorted<Key: Comparable>(by key: (Element) -> Key) -> [Element] {
         enumerated()
             .map { (key: key($0.element), offset: $0.offset, element: $0.element) }
@@ -59,87 +54,6 @@ private func shuffleKey(_ id: Int, _ seed: UInt64) -> UInt64 {
     x = (x ^ (x >> 30)) &* 0xBF58_476D_1CE4_E5B9
     x = (x ^ (x >> 27)) &* 0x94D0_49BB_1331_11EB
     return x ^ (x >> 31)
-}
-
-private extension CosmosElement {
-    // Lays the grid out as a spectrum: colorful images first in hue order (reds
-    // → violets), then the neutrals light → dark, then anything Cosmos never
-    // extracted a palette for — those would otherwise all collapse onto one
-    // arbitrary end of the spectrum.
-    var colorKey: Double {
-        guard let palette = Palette(colors) else { return 2 }
-        return palette.isNeutral ? 1 + (1 - palette.lightness) : palette.hue
-    }
-}
-
-// Reduces a palette to a single position on that spectrum.
-private struct Palette {
-    let hue: Double
-    let lightness: Double
-    let isNeutral: Bool
-
-    init?(_ hexes: [String]?) {
-        // Cosmos orders swatches by dominance, and only the leading few carry
-        // the image's character — a vivid accent buried at the end doesn't.
-        let swatches = (hexes ?? []).compactMap(Swatch.init(hex:)).prefix(4)
-        guard let dominant = swatches.first else { return nil }
-
-        // Most vivid of those, discounted by position so a faint tint in the
-        // dominant swatch outranks a bolder one further down.
-        var pick = dominant
-        var bestScore = dominant.chroma
-        for (index, swatch) in swatches.enumerated().dropFirst() {
-            let score = swatch.chroma * pow(0.7, Double(index))
-            if score > bestScore {
-                bestScore = score
-                pick = swatch
-            }
-        }
-
-        hue = pick.hue
-        lightness = dominant.brightness
-        // A grey image with one accent has to read as grey, so the palette as a
-        // whole must be colorful — not just the swatch we picked.
-        let averageChroma = swatches.map(\.chroma).reduce(0, +) / Double(swatches.count)
-        isNeutral = averageChroma < 0.05 || pick.saturation < 0.18 || pick.brightness < 0.12
-    }
-}
-
-private struct Swatch {
-    let hue: Double
-    let saturation: Double
-    let brightness: Double
-
-    // Vividness — the product, so saturated near-blacks don't read as colorful.
-    var chroma: Double { saturation * brightness }
-
-    init?(hex: String) {
-        let digits = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
-        guard digits.count == 6, let value = UInt32(digits, radix: 16) else { return nil }
-
-        let r = Double((value >> 16) & 0xFF) / 255
-        let g = Double((value >> 8) & 0xFF) / 255
-        let b = Double(value & 0xFF) / 255
-
-        let high = max(r, g, b)
-        let low = min(r, g, b)
-        let delta = high - low
-
-        brightness = high
-        saturation = high == 0 ? 0 : delta / high
-
-        if delta == 0 {
-            hue = 0
-        } else {
-            let sector: Double
-            switch high {
-            case r: sector = (g - b) / delta
-            case g: sector = 2 + (b - r) / delta
-            default: sector = 4 + (r - g) / delta
-            }
-            hue = (sector / 6).truncatingRemainder(dividingBy: 1) + (sector < 0 ? 1 : 0)
-        }
-    }
 }
 
 // Toolbar pull-down: a plain Button face that opens a real NSMenu.
@@ -174,7 +88,7 @@ struct SortPicker: View {
         .overlay(
             SortMenuAnchor(
                 openCount: openCount,
-                options: model.sortOptions,
+                options: Sort.allCases,
                 current: model.sort,
                 onPick: { option in withAnimation(Theme.spring) { model.setSort(option) } },
                 onReshuffle: { withAnimation(Theme.spring) { model.reshuffle() } }
@@ -269,7 +183,7 @@ struct SortMenu: View {
             // Toggles rather than a Picker: they render as the same native
             // checkmark rows, but also report a tap on the already-active row,
             // which is what re-rolls a shuffle.
-            ForEach(model.sortOptions) { option in
+            ForEach(Sort.allCases) { option in
                 Toggle(option.label, isOn: binding(for: option))
             }
 
