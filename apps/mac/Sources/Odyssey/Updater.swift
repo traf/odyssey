@@ -101,10 +101,12 @@ final class Updater {
               let version,
               version.compare(release.version, options: .numeric) != .orderedAscending
         else { throw Failure() }
-        try shell("/usr/bin/codesign", "--verify", "--deep", "--strict", mounted.path)
-
+        // Verify the staged copy, stripped of extended attributes: Finder
+        // metadata the DMG picked up is harmless but fails `--strict`.
         let staged = work.appending(path: "Odyssey.app")
         try shell("/usr/bin/ditto", mounted.path, staged.path)
+        try shell("/usr/bin/xattr", "-cr", staged.path)
+        try shell("/usr/bin/codesign", "--verify", "--deep", "--strict", staged.path)
         try shell("/usr/bin/hdiutil", "detach", mount.path, "-quiet", "-force")
         attached = false
 

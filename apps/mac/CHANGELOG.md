@@ -5,6 +5,7 @@ Versions follow [semver](https://semver.org); each release is tagged `v<version>
 ## 1.2.3
 
 - The app icon now follows your Dock style: light, dark, clear & tinted
+- Fixed in-app updates never installing
 
 ## 1.2.2
 

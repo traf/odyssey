@@ -41,8 +41,9 @@ tiffutil -cathidpicheck \
 
 ditto "$APP" "$WORK/source/$APP_NAME"
 ln -s /Applications "$WORK/source/Applications"
-# Finder then shows "Odyssey" rather than "Odyssey.app".
-SetFile -a E "$WORK/source/$APP_NAME" 2>/dev/null || true
+# Never `SetFile -a E` (hide extension) the app: that writes com.apple.FinderInfo
+# onto the bundle, `codesign --strict` rejects it, and 1.2.1/1.2.2's updater
+# verified strictly — so every update silently bailed.
 
 # Don't let an already-mounted copy steal Finder's front window.
 hdiutil detach "/Volumes/$VOL" >/dev/null 2>&1 || true
@@ -110,6 +111,12 @@ if [ ! -s "$WORK/mount/.DS_Store" ]; then
   echo "✗ Finder did not persist the window layout (.DS_Store missing)" >&2
   exit 1
 fi
+
+# Finder can still tag the bundle while laying out the window; strip it and
+# make sure the app ships in a state the updater accepts.
+xattr -d com.apple.FinderInfo "$WORK/mount/$APP_NAME" 2>/dev/null || true
+codesign --verify --deep --strict "$WORK/mount/$APP_NAME" \
+  || { echo "✗ App in the DMG fails strict codesign (the updater would reject it)" >&2; exit 1; }
 
 hdiutil detach -quiet "$WORK/mount"
 hdiutil convert -quiet "$RW" -ov -format UDZO -imagekey zlib-level=9 -o "$DMG"
