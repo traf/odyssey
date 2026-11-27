@@ -2,6 +2,10 @@
 
 Versions follow [semver](https://semver.org); each release is tagged `v<version>` on GitHub (see [AGENTS.md](../../AGENTS.md) → Shipping).
 
+## 1.2.3
+
+- The app icon now follows your Dock style: light, dark, clear & tinted
+
 ## 1.2.2
 
 - Fixed profiles & clusters failing to load with “Cosmos API error: 400”

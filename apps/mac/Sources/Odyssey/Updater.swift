@@ -11,7 +11,7 @@ import Observation
 @Observable
 final class Updater {
     private static let latestAPI = URL(string: "https://api.github.com/repos/traf/odyssey/releases/latest")!
-    static let fallbackVersion = "1.2.2"
+    static let fallbackVersion = "1.2.3"
     let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? Updater.fallbackVersion
 
     func check() async {

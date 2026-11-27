@@ -41,9 +41,14 @@ BIN="$(swift build -c release --show-bin-path)/$APP_NAME"
 echo "→ Assembling $APP_NAME.app…"
 rm -rf "$DIST" && mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$APP_NAME"
-# Loose in Contents/Resources, where `Asset` reads them (AppIcon.icns, icon.png,
-# logo.png). Never ship SwiftPM's .bundle: `Bundle.module` can't find it there.
+# Loose in Contents/Resources, where `Asset` reads them (icon.png, logo.png). Never ship SwiftPM's .bundle: `Bundle.module` can't find it there.
 rsync -a --exclude='.*' "Sources/Odyssey/Resources/" "$APP/Contents/Resources/"
+# The Icon Composer icon compiles to Assets.car (which macOS re-renders for
+# light, dark, clear and tinted) plus an AppIcon.icns fallback.
+xcrun actool AppIcon.icon --compile "$APP/Contents/Resources" \
+  --platform macosx --minimum-deployment-target 26.0 --app-icon AppIcon \
+  --output-partial-info-plist "$DIST/icon.plist" >/dev/null
+rm "$DIST/icon.plist"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -55,6 +60,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
   <key>CFBundleExecutable</key><string>$APP_NAME</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundleIconName</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$VERSION</string>

@@ -61,7 +61,10 @@ struct OdysseyApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        if let icon = Asset.image("icon") {
+        // Dev builds (`swift run`) have no bundle icon, so borrow the PNG. A
+        // packaged app must keep its own: `AppIcon.icon` re-renders for light,
+        // dark, clear and tinted, and setting this would pin one static image.
+        if Bundle.main.bundleURL.pathExtension != "app", let icon = Asset.image("icon") {
             NSApp.applicationIconImage = icon
         }
         NSApp.activate(ignoringOtherApps: true)
