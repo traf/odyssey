@@ -13,7 +13,7 @@
 
 An unofficial [Cosmos](https://cosmos.so) client. Two things:
 
-- **API** — a simple Cosmos API for any profile or cluster, plus global search. Live at [odyssey-hq.vercel.app](https://odyssey-hq.vercel.app). See [apps/web](apps/web/README.md).
+- **API** — a Cosmos API for any profile, cluster or search. Live at [odyssey-hq.vercel.app](https://odyssey-hq.vercel.app). See [apps/web](apps/web/README.md).
 - **Mac app** — a native macOS app to browse Cosmos from your desktop. It runs on the API. See [apps/mac](apps/mac/README.md).
 
 No auth, so public elements only.
