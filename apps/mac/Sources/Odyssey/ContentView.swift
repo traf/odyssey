@@ -125,12 +125,10 @@ struct ContentView: View {
     }
 
     private func openAccount() {
-        Haptic.tap()
         withAnimation(Theme.spring) { model.showAccount = true }
     }
 
     private func closeAccount() {
-        Haptic.tap()
         withAnimation(Theme.spring) { model.showAccount = false }
     }
 

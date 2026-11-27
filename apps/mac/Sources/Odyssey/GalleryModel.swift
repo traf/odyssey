@@ -110,13 +110,11 @@ final class GalleryModel {
 
     func toggleSidebar() {
         sidebarVisible.toggle()
-        Haptic.tap()
     }
 
     // Zen mode: hide all chrome (sidebar + toolbar), leaving only the images.
     func toggleZen() {
         zenMode.toggle()
-        Haptic.tap()
     }
 
     // Bumped to send the grid back to the top. A token rather than an offset:
@@ -126,7 +124,6 @@ final class GalleryModel {
 
     func scrollToTop() {
         sendToTop()
-        Haptic.tap()
     }
 
     private func sendToTop() {
@@ -182,9 +179,7 @@ final class GalleryModel {
     func clearSearch() async {
         query = ""
         if selection.isSearch {
-            await select(.all)   // fires its own haptic
-        } else {
-            Haptic.tap()
+            await select(.all)
         }
     }
 
@@ -193,7 +188,6 @@ final class GalleryModel {
         zenMode = false
         sidebarVisible = true
         searchFocusToken &+= 1
-        Haptic.tap()
     }
 
     func search() async {
